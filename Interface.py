@@ -16,14 +16,17 @@
 #     * ---> *
 #     * ---> *
 
+
+
 import math, copy, random
+import graph_backend
 from cmu_112_graphics import *
 
 #################################################
 # Configuration function
 #################################################
 def gridDimensions():
-    #return (15,10,20,25)
+    # return (15,10,20,25)
     return (30, 25, 20, 25)
 
 # BASIC CONSTS
@@ -69,8 +72,8 @@ zPiece = [
 ## Get size of a connected component of grid
 def floodFill(grid, i, j):
     board = grid.board
-    # look for a place to start filling
-    if board[i][j] == grid.emptyColor:
+    # look for a pl ace to start filling
+    if board[i][j] == grid.emptyColor:   # access is safe; edges are occupied
         return 1 + floodFill(grid, i + 1, j) + floodFill(grid, i - 1, j) + floodFill(grid, i, j + 1) + floodFill(grid, i, j - 1)
     else:
         return 0
@@ -86,6 +89,8 @@ class grid:
         self.cols = self.myDimensions[1]
         self.cellSize = self.myDimensions[2]
         self.margin = self.myDimensions[3]
+        self.whiteBlocks = (self.rows-2)*(self.cols-2)
+
 
         # initialize the board
         self.emptyColor = "white"
@@ -98,8 +103,13 @@ class grid:
             self.board[i][self.cols-1] = "black"
 
     def blockifyCell(self, row, col):
-        self.board[row][col] = "black"
-
+        if row != 0 and row != self.rows-1 and col != 0 and col != self.cols -1:
+            if self.board[row][col] == self.emptyColor:
+                self.board[row][col] = "black"
+                self.whiteBlocks -= 1
+            else:
+                self.board[row][col] = self.emptyColor
+                self.whiteBlocks += 1
     # heuristic functions
 
 
@@ -109,56 +119,6 @@ class grid:
 #     * ---> *
 #     * ---> *
 #     * ---> *
-LEFT = 0
-RIGHT = 1
-### 0 for left 1 for right
-### Boilerplate adapted from geeksforgeeks
-# A class to represent the adjacency list of the node
-class AdjNode:
-    def __init__(self, data, bipartition):
-        self.vertex = data
-        self.next = None
-        self.bipartition = bipartition
-
-
-# A class to represent a graph. A graph
-# is the list of the adjacency lists.
-# Size of the array will be the no. of the
-# vertices "V"
-class Graph:
-    def __init__(self, vertices):
-        self.V = vertices
-        self.graph = [None] * self.V
-
-    # Function to add an edge in an undirected graph
-    def add_edge(self, src, dest):
-        # Adding the node to the source node
-        node = AdjNode(dest)
-        node.next = self.graph[src]
-        self.graph[src] = node
-
-        # Adding the source node to the destination as
-        # it is the undirected graph
-        node = AdjNode(src)
-        node.next = self.graph[dest]
-        self.graph[dest] = node
-
-
-# Graph representation data structure for representing graph tiling
-## Header for bipartite graph representation of the grid
-class bipartite:
-    # A and B are the sets
-    def __init__(self, grid):
-        self.grid = grid
-        self.graph = self.initializeGraph()
-
-    def initializeGraph(self):
-        pass
-
-    # bool return can a subset have a perfect matching with B or not
-    def checkExactCover(self):
-        pass
-
 
 # MODEL - INITIALIZATION
 def appStarted(app):
@@ -176,11 +136,25 @@ def drawCell(app, canvas, row, col, color):
                             fill=color)
 
 
+# VIEW -- DRAW COMPONENT INFO TEXT
+def drawText(app, canvas):
+    # 45 MAGIC NUMBER SORRY
+    canvas.create_text(math.floor(app.width) - (2/12)*app.width + 45, app.height//3,
+                       text="Connected components: ", font='Arial 8 bold')
+    if app.grid.whiteBlocks % 4 == 0:
+        fill = 'green'
+    else:
+        fill = 'red'
+    canvas.create_text(math.floor(app.width) - (2/12)*app.width + 45, app.height//3 + 40,
+                       text=f'{app.grid.whiteBlocks} blocks', font='Arial 8 bold', fill=fill)
+
+
 # VIEW -- DRAW BOARD
 def drawBoard(app, canvas):
+    # 50 magic number for right side margin
     canvas.create_rectangle(0, 0, app.width, app.height, fill = 'orange')
     canvas.create_rectangle(app.grid.margin, app.grid.margin,\
-                            app.width - app.grid.margin,\
+                            app.grid.margin + app.grid.cols*(app.grid.cellSize + 2),\
                             app.height - app.grid.margin, fill='black')
     # Iterate through each row/col in our model
     for row in range(app.grid.rows):
@@ -193,26 +167,33 @@ def keyPressed(app, event):
     if event.key == 'Up':
         pass
 
+
 def mousePressed(app, event):
     size = app.grid.cellSize
     margin = app.grid.margin
-    # col = margin - 2 - 2*- event.x
-    row = math.floor((event.y) / size) - 2
-    col = math.floor((event.x) / size) - 2
+    col = math.floor((event.x - margin - 2)/(size + 2))
+    row = math.floor((event.y - margin - 2)/(size + 2))
+
     if (row <= app.grid.rows and col <= app.grid.cols and row >= 0 and col >= 0):
         app.grid.blockifyCell(row, col)
+
 
 # VIEW - MAIN DRAW FUNCTION
 def redrawAll(app, canvas):
     drawBoard(app, canvas)
+    drawText(app, canvas)
     return
 
 
 # GAME LOOP
 def runPolyominoTiling():
     myDimensions = gridDimensions()
-    runApp(width=(myDimensions[3]*2 + myDimensions[1]*(myDimensions[2] + 2)),\
-    height=(myDimensions[3]* 2 + myDimensions[0]*(myDimensions[2] + 2)))
+    rows = myDimensions[0]
+    cols = myDimensions[1]
+    cellSize = myDimensions[2]
+    margin = myDimensions[3]
+    runApp(width=(round((margin*2 + cols*(cellSize + 2))*1.2)),\
+    height=(margin*2 + rows*(cellSize + 2)))
 
 
 #################################################

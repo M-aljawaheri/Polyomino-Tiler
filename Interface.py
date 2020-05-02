@@ -17,12 +17,14 @@
 import math, copy, random
 import graph_backend
 from cmu_112_graphics import *
+import pygame
 
 #################################################
 # Configuration function
 #################################################
 def gridDimensions():
-    return (30, 25, 20, 25)
+    return (20, 15, 20, 25)
+
 
 # Helper functions for determining disconnected subcomponents of a grid
 #
@@ -37,6 +39,16 @@ def floodFill(grid, i, j):
         return 0
 
 
+#
+## Clear board
+def boardClear(grid):
+    for row in range(grid.rows):
+        for col in range(grid.cols):
+            if row >= 0 and row < grid.rows and col >= 0 and col < grid.cols:
+                if grid.board[row][col] != "black" and grid.board[row][col] != grid.emptyColor:
+                    grid.board[row][col] = grid.emptyColor
+                    grid.whiteBlocks += 1
+
 # Our grid for making the polyomino representation
 class grid:
     def __init__(self):
@@ -46,30 +58,33 @@ class grid:
         self.cols = self.myDimensions[1]
         self.cellSize = self.myDimensions[2]
         self.margin = self.myDimensions[3]
-        self.whiteBlocks = (self.rows-2)*(self.cols-2)
+        self.whiteBlocks = (self.rows)*(self.cols)
+        self.wallList = []
         self.connectedComponentCount = []
         # initialize the board
         self.emptyColor = "white"
         self.board = [[self.emptyColor for x in range(self.cols)] for x in range(self.rows)]
         # make a black border
-        self.board[0] = ["black"] * self.cols
-        self.board[self.rows-1] = ["black"] * self.cols
-        for i in range(1, self.rows - 1):
-            self.board[i][0] = "black"
-            self.board[i][self.cols-1] = "black"
+        #self.board[0] = ["black"] * self.cols
+        #self.board[self.rows-1] = ["black"] * self.cols
+        #for i in range(1, self.rows - 1):
+        #    self.board[i][0] = "black"
+        #    self.board[i][self.cols-1] = "black"
 
 
     def blockifyCell(self, row, col):
         # check for out of bounds
-        if row > 0 and row < self.rows-1 and col > 0 and col < self.cols-1:
+        if row >= 0 and row < self.rows and col >= 0 and col < self.cols:
             # switch white to black
             if self.board[row][col] == self.emptyColor:
                 self.board[row][col] = "black"
                 self.whiteBlocks -= 1
+                self.wallList.append(row*self.cols + col)
             # switch black to white
             else:
                 self.board[row][col] = self.emptyColor
                 self.whiteBlocks += 1
+                self.wallList.remove(row*self.cols + col)
 
     # update method for the grid
     def update(self):
@@ -77,29 +92,30 @@ class grid:
 
     # heuristic functions
 
-#     A      B    where A is set of a potential placement of all n polyominos
-#     * ---> *    and B is set of all cells in the grid
-#     * ---> *
-#     * ---> *
-#     * ---> *
-#     * ---> *
+# A      B    where A is set of a potential placement of all n polyominos
+# * ---> *    and B is set of all cells in the grid
+# * ---> *
+# * ---> *
+# * ---> *
+# * ---> *
 # MODEL - INITIALIZATION
 def appStarted(app):
     app.grid = grid()
-    app.tetrisPieceColors = [ "red", "yellow", "magenta", "pink", "cyan", "green", "orange" ]
+    app.tetrisPieceColors = ["red", "yellow", "grey", "cyan", "green", "sienna", "blue", "purple"]
     app.genButton = button(math.floor(app.width) - (2/12)*app.width + 10, app.height//3 + 100 - 20\
-                        , math.floor(app.width) - (2/12)*app.width + 90, app.height//3 + 100 + 20, "purple")
+                        , math.floor(app.width) - (2/12)*app.width + 90, app.height//3 + 100 + 20, "purple", "Generate")
 
+    app.rstButton = button(math.floor(app.width) - (2/12)*app.width + 10, app.height//3 + 100 + 40\
+                        , math.floor(app.width) - (2/12)*app.width + 90, app.height//3 + 100 + 80, "purple", "Reset")
     app.placementList = graph_backend.generatePlacements(app.grid.cols, app.grid.rows)
-    app.placementList = graph_backend.naiveGenerate(app.grid)
     app.timerDelay = 100
 
 # VIEW -- DRAW CELL
 def drawCell(app, canvas, row, col, color):
     canvas.create_rectangle(app.grid.margin + 2 + col*(app.grid.cellSize + 2),
-                            app.grid.margin + 2 + row*(app.grid.cellSize  + 2),
-                            app.grid.margin + 2 + col*(app.grid.cellSize  + 2) + app.grid.cellSize,
-                            app.grid.margin + 2 + row*(app.grid.cellSize  + 2) + app.grid.cellSize,
+                            app.grid.margin + 2 + row*(app.grid.cellSize + 2),
+                            app.grid.margin + 2 + col*(app.grid.cellSize + 2) + app.grid.cellSize,
+                            app.grid.margin + 2 + row*(app.grid.cellSize + 2) + app.grid.cellSize,
                             fill=color)
 
 
@@ -131,39 +147,76 @@ def drawBoard(app, canvas):
         for col in range(app.grid.cols):
             drawCell(app, canvas, row, col, color=app.grid.board[row][col])
 
+# VIEW - Draw a piece
+def drawPiece(app, indexList, color):
+    #for index in indexList:
+    #    if index in app.grid.wallList:
+    #        return
+
+    if color == 0:
+        randinteger = randint(0, len(app.tetrisPieceColors) - 1)
+        color = app.tetrisPieceColors[randinteger]
+    else:
+        color = app.grid.emptyColor
+
+    for index in range(len(indexList)):
+        if indexList[index] != -1:
+            app.grid.board[indexList[index]//app.grid.cols][indexList[index]%app.grid.cols] = color
+            if color == app.grid.emptyColor:
+                app.grid.whiteBlocks += 1
+            else:
+                app.grid.whiteBlocks -=1
+
+
+
 # VIEW - BUTTON CLASS
 class button:
-    def __init__(self, startX, startY, endX, endY, fill):
+    def __init__(self, startX, startY, endX, endY, fill, text):
         self.startX = startX
         self.startY = startY
         self.endX = endX
         self.endY = endY
         self.fill = fill
+        self.text = text
+        pygame.mixer.init()
+        self.soundObj = pygame.mixer.Sound("sound_files\\mclick.wav")
+
     def clicked(self, x, y):
         if(self.startX <= x and self.endX >= x):
             if(self.startY <= y and self.endY >= y):
                 return True
+
     def draw(self, app, canvas):
         canvas.create_rectangle(self.startX, self.startY, self.endX, self.endY, fill=self.fill)
-        canvas.create_text(math.floor(app.width) - (2/12)*app.width+50, app.height//3 + 100, \
-            text='Generate', font='Arial 8 bold')
+        canvas.create_text(math.floor(app.width) - (2/12)*app.width+50, self.startY + 20,\
+                           text=self.text, font='Arial 8 bold')
 
+    def playSound(self):
+        self.soundObj.play()
 
 # CONTROLLER - KEY PRESSES
 def keyPressed(app, event):
     if event.key == "Up":
-        debug(app)
+        boardClear(app.grid)
 
 
 def mousePressed(app, event):
     size = app.grid.cellSize
     margin = app.grid.margin
     col = math.floor((event.x - margin - 2)/(size + 2))
-    row =math.floor((event.y - margin - 2)/(size + 2))
+    row = math.floor((event.y - margin - 2)/(size + 2))
     if (row <= app.grid.rows and col <= app.grid.cols and row >= 0 and col >= 0):
-        app.grid.blockifyCell(row,col)
-    if(app.genButton.clicked(event.x, event.y)):
-        print("BRUH A7A")
+        app.grid.blockifyCell(row, col)
+
+    if (app.genButton.clicked(event.x, event.y)):
+        app.genButton.playSound()
+        #debug(app)
+        graph_backend.deleteBlackWalls(app)
+        graph_backend.determineExactCoverSubset(app, app.placementList, 0)
+
+    if (app.rstButton.clicked(event.x, event.y)):
+        app.rstButton.playSound()
+        boardClear(app.grid)
 
 
 # VIEW - MAIN DRAW FUNCTION
@@ -171,6 +224,7 @@ def redrawAll(app, canvas):
     drawBoard(app, canvas)
     drawText(app, canvas)
     app.genButton.draw(app, canvas)
+    app.rstButton.draw(app, canvas)
 
 
 import time
@@ -179,8 +233,14 @@ from random import*
 def debug(app):
     for placement in app.placementList:
         randinteger = randint(0, len(app.tetrisPieceColors) - 1)
+        shouldTile = True
         for i in placement:
-            app.grid.board[i//app.grid.cols][i%app.grid.cols] = app.tetrisPieceColors[randinteger]
+            if app.grid.board[i//app.grid.cols][i%app.grid.cols] != app.grid.emptyColor:
+                shouldTile = False
+        if shouldTile:
+            for i in placement:
+                app.grid.whiteBlocks -= 1
+                app.grid.board[i//app.grid.cols][i%app.grid.cols] = app.tetrisPieceColors[randinteger]
 
 
 # Game Loop

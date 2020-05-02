@@ -1,116 +1,3 @@
-iPiece = [
-    [True, True, True, True]
-]
-
-iPiece90 = [
-    [True],
-    [True],
-    [True],
-    [True]
-]
-
-jPiece = [
-    [ True,  False, False],
-    [ True,   True, True ]
-]
-
-jPiece90 = [
-    [ True, True ],
-    [ True, False],
-    [ True, False]
-]
-
-jPiece180 = [
-    [ True, True, True],
-    [False, False, True]
-]
-
-jPiece270 = [
-    [ False, True ],
-    [ False, True ],
-    [  True, True ]
-]
-
-lPiece = [
-    [ False, False,  True],
-    [ True, True,  True]
-]
-
-lPiece90 = [
-    [True, True],
-    [False, True],
-    [False, True]
-]
-
-lPiece180 =[
-    [False, False, True],
-    [True, True, True]
-]
-
-lPiece270 = [
-    [True, False],
-    [True, False],
-    [True, True]
-]
-
-oPiece = [
-    [True, True],
-    [True, True]
-]
-
-sPiece = [
-    [False, True, True],
-    [True, True, False]
-
-]
-
-sPiece90 = [
-    [True, False],
-    [True, True],
-    [False, True]
-]
-
-tPiece = [
-    [False, True, False],
-    [True, True, True]
-]
-
-tPiece90 = [
-    [False, True],
-    [True, True],
-    [False, True]
-]
-
-
-tPiece180 = [
-    [True, True, True],
-    [False, True, False]
-
-]
-
-tPiece270 = [
-    [True, False],
-    [True, True],
-    [True, False]
-
-]
-
-zPiece = [
-    [True, True, False],
-    [False, True, True]
-]
-
-zPiece90 = [
-    [False, True],
-    [True, True ],
-    [True, False]
-]
-
-allPieces = [iPiece,iPiece90,jPiece,jPiece90, jPiece180,\
-    jPiece270, lPiece, lPiece90, lPiece180, lPiece270,\
-    oPiece, sPiece, sPiece90, tPiece,tPiece90,\
-    tPiece180, tPiece270, zPiece, zPiece90]
-
 ## File for handling graph backend
 ## We are representing potential polyomino tilings as a bipartite graph
 ## where nodes on the left side are the set of polyominos tiled and right
@@ -122,75 +9,187 @@ allPieces = [iPiece,iPiece90,jPiece,jPiece90, jPiece180,\
 # Seven "standard" pieces (tetrominoes)
 # Initialize the pieces
 
-# Takes an upperbound n to form a big enough n x n board that
-# encloses current board
+#
+## Helper function to fill in one possible placement
+import copy
+from Interface import*
+
+# For each index in 1D representation of our
+# grid we check if we can place a piece there, if we can then we fill a
+# row of our exact cover matrix with a possible placement
 def generatePlacements(width, height):
     genericPieces = []
     n = width*height
     for i in range(n):
         # Check if generic piece placement holds
         if i % width <= width - 4:  # Horizontal iPiece 0 deg
-            genericPieces.append({i, i+1, i+2, i+3})
+            L = [i, i+1, i+2, i+3]
+            fillGeneric(L, genericPieces, height, width)
         if i <= n - 3*width - 1:  # Vertical iPiece 90 deg
-            genericPieces.append({i, width+i, 2*width+i, 3*width+i})
+            L = [i, width+i, 2*width+i, 3*width+i]
+            fillGeneric(L, genericPieces, height, width)
         if i % width <= width - 3 and i < n - width:  # jPiece 0 deg
-            genericPieces.append({i, width+i, width+i+1, width+i+2})
+            L = [i, width+i, width+i+1, width+i+2]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width-1 and i < n - 2*width:  # jPiece 90 deg
-            genericPieces.append({i, i+1, width+i, 2*width+i})
+            L = [i, i+1, width+i, 2*width+i]
+            fillGeneric(L, genericPieces, height, width)
         if i % width <= width - 3 and i < n - width:  # jPiece 180 deg
-            genericPieces.append({i, i+1, i+2, width+i+2})
+            L = [i, i+1, i+2, width+i+2]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width - 1 and i < n - 2*width:  # jPiece 270 deg
-            genericPieces.append({i+1, width+i+1, 2*width+i, 2*width+i+1})
+            L = [i+1, width+i+1, 2*width+i, 2*width+i+1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width <= width - 3 and i < n - width:  # lPiece 0 deg
-            genericPieces.append({i+2, width+i, width+i+1, width+i+2})
+            L = [i+2, width+i, width+i+1, width+i+2]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width - 1 and i < n - 2*width:  # lPiece 90 deg
-            genericPieces.append({i, i+1, width+i+1, 2*width+i+1})
+            L = [i, i+1, width+i+1, 2*width+i+1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width <= width - 3 and i < n - width:  # lPiece 180
-            genericPieces.append({i, i+1, i+2, width+i})
+            L = [i, i+1, i+2, width+i]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width-1 and i < n - 2*width:  # lPiece 270
-            genericPieces.append({i, width+i, 2*width+i, 2*width+i+1})
+            L = [i, width+i, 2*width+i, 2*width+i+1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width - 1 and i < n - width:  # oPiece
-            genericPieces.append({i, i + 1, width + i, width + i + 1})
+            L = [i, i + 1, width + i, width + i + 1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width <= width - 3 and i < n - width:  # sPiece 0 deg
-            genericPieces.append({i + 1, i + 2, width + i, width + i + 1})
+            L = [i + 1, i + 2, width + i, width + i + 1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width - 1 and i < n - 2 * width:  # sPiece 90 deg
-            genericPieces.append({i, width + i, width + i + 1, 2 * width + i + 1})
+            L = [i, width + i, width + i + 1, 2 * width + i + 1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width <= width - 3 and i < n - width:  # tPiece 0 deg
-            genericPieces.append({i + 1, width + i, width + i + 1, width + i + 2})
+            L = [i + 1, width + i, width + i + 1, width + i + 2]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width - 1 and i < n - 2 * width:  # tPiece 90 deg
-            genericPieces.append({i + 1, width + i, width + i + 1, 2 * width + i + 1})
-        if i % width <= width - 3 and i < n - width:  # tPiece 180 deg
-            genericPieces.append({i, i + 1, i + 2, width + i + 1})
+            L = [i + 1, width + i, width + i + 1, 2 * width + i + 1]
+            fillGeneric(L, genericPieces, height, width)
+            L = [i, i + 1, i + 2, width + i + 1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width - 1 and i < n - 2 * width:  # tPiece 270 deg
-            genericPieces.append({i, width + i, width + i + 1, 2 * width + i})
+            L = [i, width + i, width + i + 1, 2 * width + i]
+            fillGeneric(L, genericPieces, height, width)
         if i % width <= width - 3 and i < n - width:  # zPiece 0 deg
-            genericPieces.append({i, i + 1, width + i + 2, width + i + 1})
+            L = [i, i + 1, width + i + 2, width + i + 1]
+            fillGeneric(L, genericPieces, height, width)
         if i % width != width - 1 and i < n - 2 * width:  # zPiece 90 deg
-            genericPieces.append({i + 1, width + i, width + i + 1, 2 * width + i})
+            L = [i + 1, width + i, width + i + 1, 2 * width + i]
+            fillGeneric(L, genericPieces, height, width)
+
     return genericPieces
 
+ # For each thing: loop through indices and make  them 1
+def fillGeneric(L, genericP, rows, cols):
+    placement = [-1] * (rows * cols)
+    for index in L:
+        # build list placement of size rows*cols with placement[index] = 1
+        placement[index] = index
+    genericP.append(placement)
+    return
 
 
+def getOnesInCol(possiblePlacements, curCol):
+    rows = len(possiblePlacements)
+    allOnes = []
+    for row in range(rows):
+        if possiblePlacements[row][curCol] != -1:
+            allOnes.append(row)
+    return allOnes
 
 
-####### GENERATING LEFT BIPARTITION ########
-#  Functions to
-## Generate all possible placements of all polyominos
+def deleteBlackWalls(app):
+    possiblePlacements = app.placementList
+    # get all 1s in the row
+    cols = sorted([x for x in app.grid.wallList])  # not unocupied
+    if len(cols) == 0:
+        return
+
+    #deletedRows = {y for x in cols for y in getOnesInCol(possiblePlacements, x)}  # all rows we should delete
+    deletedRows = set()
+    for x in cols:
+        tempList = getOnesInCol(possiblePlacements, x)
+        for elem in tempList:
+            deletedRows.add(elem)
+
+    initialList = [possiblePlacements[x] for x in range(len(possiblePlacements)) if x not in deletedRows]
+
+    final = []
+    cols += [len(possiblePlacements[0])]
+    slice1 = -1
+    for i in range(len(initialList)):
+        slice1 = -1
+        newListhaha = []
+        for slicePortion in cols:
+            newListhaha += initialList[i][slice1+1:slicePortion]
+            slice1 = slicePortion
+        final.append(newListhaha)
+
+    # slices off all unnecessary columns
+    app.placementList = final
+
+
+# def deleteColumn(possiblePlacements, rows, col):
+#     for row in range(rows):
+#         del possiblePlacements[row][col]
+def updateMatrix(possiblePlacements, row, currentCol):
+    # get all 1s in the row
+    cols = [x for x in range(len(possiblePlacements[row])) if possiblePlacements[row][x] != -1]  # not unocupied
+    #deletedRows = {y for x in cols for y in getOnesInCol(possiblePlacements, x)}  # all rows we should delete
+    deletedRows = set()
+    for x in cols:
+        tempList = getOnesInCol(possiblePlacements, x)
+        for elem in tempList:
+            deletedRows.add(elem)
+
+    initialList = [possiblePlacements[x] for x in range(len(possiblePlacements)) if x not in deletedRows]
+
+    loffset = 0
+    for col in cols:
+        if col < currentCol:
+            loffset += 1
+
+    newListhaha = []
+    for i in range(len(initialList)):
+        newListhaha.append(initialList[i][0:cols[0]]       \
+                     + initialList[i][cols[0]+1:cols[1]]   \
+                     + initialList[i][cols[1]+1:cols[2]]   \
+                     + initialList[i][cols[2]+1:cols[3]]   \
+                     + initialList[i][cols[3]+1:])
+    # slices off all unnecessary columns
+    return newListhaha, currentCol - loffset
+
 
 #
-## Naive specification function
-def naiveGenerate(app):
-    placedPieces = []
-    for piece in allPieces:
-        for row in range(app.rows):
-            for col in range(app.cols):
-                placementWorks = True
-                placementIndices = []
-                for pieceRow in range(len(piece)):
-                    for pieceCol in range(len(piece[0])):
-                        if row+pieceRow >= 1 and row+pieceRow < app.rows-1 and col+pieceCol >=1 and col+pieceCol < app.cols-1:
-                            placementWorks = False
-                        placementIndices.append(row+pieceRow*app.cols + col+pieceCol)
-                if placementWorks:
-                    placedPieces.append(placementIndices)
-    return placedPieces
+## Exact cover solve
+## We have a matrix of dimensions rows*cols x allPossiblePlacements
+## index [i][j] indicates that placement i covers entry j in the grid
+def determineExactCoverSubset(app, possiblePlacements, c):
+    # 1. If the matrix A has no columns, the current partial solution
+        # is a valid solution; terminate successfully.
+
+    rows = len(possiblePlacements)
+    if len(possiblePlacements) == 0 and app.grid.whiteBlocks == 0:
+        return "Success"
+    elif len(possiblePlacements) <= 0:
+        return "Failure"
+    if len(possiblePlacements[0]) == 0:
+        return "Success"
+    else:
+        cols = len(possiblePlacements[0])
+
+    # 2. Otherwise, choose a column c (deterministically).
+    # 3. Choose a row r such that A[r] = 1 (nondeterministically).
+    allOnes = getOnesInCol(possiblePlacements, c)
+    for row in allOnes:
+        drawPiece(app, possiblePlacements[row], 0)  # 0 for normal col
+        # update matrix and pass new copy down the recursion tree
+        newPlacements, c = updateMatrix(possiblePlacements, row, c)
+        res = determineExactCoverSubset(app, newPlacements, c)
+        if res == "Success":
+            return "Success"
+        drawPiece(app, possiblePlacements[row], 1)  # 1 for white col
+
+    return "Failure"

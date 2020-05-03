@@ -3,5 +3,6 @@ Python implementation of a polyomino tiler, part of a course project for analyzi
 
 
 
+Known bugs: Most likely crashes if you try to tile a board that is untileable
 
 Authors: Mohammed Al-jawaheri and Igli mlloja. CMU - Looking at shapes
